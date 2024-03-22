@@ -97,6 +97,19 @@ def _is_model(layer):
     return layer.get("config").get("layers") is not None
 
 
+def maybe_layer_keras3(dict_maybe_layer):
+    """Extracts the required format of the functional model parameters from Keras 3.x structure.
+    
+    Args:
+      maybe_layer: Keras 3.x dict format of functional model inbound_nodes
+    
+    Returns:
+      The extracted values in the expected list format
+    
+    """
+    args0 = dict_maybe_layer['args'][0] if isinstance(dict_maybe_layer['args'][0], list) else [ dict_maybe_layer['args'][0] ]
+    return [ [ a0['config']['keras_history'][0], a0['config']['keras_history'][1], a0['config']['keras_history'][2], None ] for a0 in args0 ]
+
 def _norm_to_list_of_layers(maybe_layers):
     """Normalizes to a list of layers.
 
@@ -107,11 +120,16 @@ def _norm_to_list_of_layers(maybe_layers):
       List of list of data.
 
     [1]: A Functional model has fields 'inbound_nodes' and 'output_layers' which can
-    look like below:
+    look like with Keras 2.x below:
     - ['in_layer_name', 0, 0]
     - [['in_layer_is_model', 1, 0], ['in_layer_is_model', 1, 1]]
     The data inside the list seems to describe [name, size, index].
+    Keras 3.x exports the same information embedded in a dict object.
     """
+
+    if isinstance(maybe_layers, dict):
+        maybe_layers = maybe_layer_fix(maybe_layers)
+
     return (
         maybe_layers if isinstance(maybe_layers[0], (list,)) else [maybe_layers]
     )
